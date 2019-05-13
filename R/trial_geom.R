@@ -1,6 +1,28 @@
 usethis::use_package("sf")
 usethis::use_package("dplyr")
 
+#' Complements the over function in sf:
+#'
+#' This take in any two sets of sf geometries and returns
+#'  the intersects in the same way as the sp over:
+#' @param x of class 'sf' to intersect
+#' @param y of class 'sf' to be intersected
+#' @keywords Over, Intersect, Simple Features, sf
+#' @export
+#' @examples
+#' \dontrun{
+#' st_over()
+#' }
+st_over <- function(x, y) {
+  sapply(sf::st_intersects(x, y), function(z)
+    if (length(z) == 0) {
+      NA_integer_
+    } else {
+      z[1]
+    })
+}
+
+
 
 #' Function to get the heading angle between two points:
 #'
