@@ -49,19 +49,54 @@ calc_direction <- function(df) {
 }
 
 
-#' Function to get the diagonal distance of the bounding box of sf objects:
-#
-#' This takes in an sf object and calculates the distance between oppsoite corners of the bounding box
-#' @param sf_obj of class 'sf' representing a rectangle
-#' @keywords Distance, Simple Features, sf
+usethis::use_package("sf")
+
+#' Tranform any projection to UTM for a sf object:
+#'
+#' This take in any sf geometries and returns
+#'  a new sf geometry with the right UTM zone:
+#' @param sf_obj  of class 'sf'
+#' @keywords UTM, Projection, Simple Features, sf
 #' @export
 #' @examples
 #' \dontrun{
-#'
+#' st_utm(fields)
 #' }
-calc_max_dist <- function(sf_obj) {
-  pts <- sf::st_cast(sf::st_as_sfc(sf::st_bbox(sf_obj)), "POINT")
-  return(as.numeric(sf::st_distance(pts[1], pts[3])))
+st_utm <- function(sf_obj) {
+  # Function to get UTM Zone from mean longitude:
+  long2UTM <- function(long) {
+    (floor((long + 180) / 6) %% 60) + 1
+  }
+
+  # Check if the object class is 'sf':
+  obj_c <- class(sf_obj)[1]
+  if (obj_c == "sf") {
+    # In case the object has no projectin assigned,
+    #  assume it to geographic WGS84 :
+    if (is.na(sf::st_crs(sf_obj))) {
+      sf::st_crs(sf_obj) <- sf::st_crs(4326)
+    }
+
+    # Get the center longitude in degrees:
+    bb <- sf::st_as_sfc(sf::st_bbox(sf_obj))
+    bb <- sf::st_transform(bb, sf::st_crs(4326))
+
+    # Get UTM Zone from mean longitude:
+    utmzone <- long2UTM(mean(sf::st_bbox(bb)[c(1, 3)]))
+
+    # Get the hemisphere based on the latitude:
+    NS <- 100 * (6 + (mean(sf::st_bbox(bb)[c(2, 4)]) < 0))
+
+    # Add all toghether to get the EPSG code:
+    projutm <- sf::st_crs(32000 + NS + utmzone)
+
+    # Reproject data:
+    sf_obj <- sf::st_transform(sf_obj, projutm)
+    return(sf_obj)
+  } else {
+    options(error = NULL)
+    stop("Object class is not 'sf', please insert a sf object!")
+  }
 }
 
 #' Function to get distances between consecutive points:
@@ -81,20 +116,19 @@ calc_max_dist <- function(sf_obj) {
 #' DIFMR::calc_distance(field, max = TRUE)
 #'
 calc_distance <- function(sf_obj, max = FALSE) {
-  if(max == TRUE){
-      pts = sf::st_cast(sf::st_as_sfc(sf::st_bbox(sf_obj)), "POINT")
-      return(as.numeric(sf::st_distance(pts[1], pts[3])))
-    }else{
-      ab_dist <- function(a, b) {
-        return(sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2))
-      }
-      coords <- st_coordinates(sf_obj)
-      result <- as.numeric(sapply(c(2:nrow(coords)), function(x) {
-        ab_dist(coords[x - 1, ], coords[x, ])
-      }))
-      return(c(result[1], result))
+  if (max == TRUE) {
+    pts <- sf::st_cast(sf::st_as_sfc(sf::st_bbox(sf_obj)), "POINT")
+    return(as.numeric(sf::st_distance(pts[1], pts[3])))
+  } else {
+    ab_dist <- function(a, b) {
+      return(sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2))
+    }
+    coords <- st_coordinates(sf_obj)
+    result <- as.numeric(sapply(c(2:nrow(coords)), function(x) {
+      ab_dist(coords[x - 1, ], coords[x, ])
+    }))
+    return(c(result[1], result))
   }
-
 }
 
 
@@ -488,54 +522,6 @@ to_line <- function(pol) {
   segs <- sf::st_as_sf(data.frame(Heading), geom = sf::st_as_sfc(segs))
   sf::st_crs(segs) <- sf::st_crs(pol)
   return(segs)
-}
-
-#' Function to create trials around points:
-#'
-#' This function creates a trial geometry with given dimensions
-#' around each point in \code{points}.
-#'
-#' @param field the field boundary of class 'sf'
-#' @param path_lines 'sf' data frame containing parallel lines drawn across field
-#' @param points 'sf' data frame containing points
-#' @param width the dimension of the field perpendiclar to \code{path_lines}
-#' @param length the dimension of the field parallel to \code{path_lines}
-#' @param subplot_length Optional. Length calculated in units of \code{subplot_length} if specified; otherwise, in meters
-#' @param path_width Optional. Width calculated in units of \code{path_width} if specified; otherwise, in meters
-#' @keywords Plots, Trial Design
-#' @export
-#' @examples
-#' data(points)
-#' select_plots(field, path_lines, points, 100, 200)
-select_plots <- function(field, path_lines, points, width, length, path_width = NA, subplot_length = NA) {
-  if(is.na(subplot_length) != is.na(path_width)) {
-    stop('"subplot_length" AND "path_width" must be both provided or both omitted')
-  }
-  if(!is.na(subplot_length) && !is.na(path_width)) {
-    width = width * path_width
-    length = length * subplot_length
-  }
-  points = sf::st_intersection(st_geometry(field), st_geometry(points))
-  coords <- lapply(points, function(i) {
-    i = as.vector(sf::st_coordinates(i))
-    ul = i+c(-width/2,length/2)
-    ur = i+c(width/2,length/2)
-    dr = i+c(width/2,-length/2)
-    dl = i+c(-width/2,-length/2)
-    return(list(rbind(ul,ur,dr,dl,ul)))
-  })
-  bboxes = sf::st_sf(geom = sf::st_cast(sf::st_sfc(sf::st_multipolygon(coords), crs = sf::st_crs(field)),"POLYGON"))
-  angle = calc_direction(path_lines[1,])[1]
-  fieldu_geom = sf::st_geometry(field)
-  for(i in 1:nrow(bboxes)) {
-    bboxes[i,] = st_rotate(bboxes[i,], angle)
-    bboxes[i,] = sf::st_intersection(fieldu_geom, bboxes[i,])
-    fieldu_geom = sf::st_difference(fieldu_geom, bboxes[i,])
-  }
-  fieldu = sf::st_sf(geom = fieldu_geom, Type = "Headland")
-  bboxes$Type = "Trial"
-  fieldp = rbind(fieldu, bboxes)["Type"]
-  return(fieldp)
 }
 
 
