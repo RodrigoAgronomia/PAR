@@ -592,6 +592,7 @@ make_trial <- function(pols) {
     zdesign <- if (is.null(pol$zdesign)) FALSE else pol$zdesign
 
     l <- to_line(pol)
+    l$L <- sf::st_length(l)
     l <- if (which.max(l$L) %% 2 == 1) l[c(2, 1, 4, 3), ] else l
     l <- if (invrc) l[c(2, 1, 4, 3), ] else l
 
