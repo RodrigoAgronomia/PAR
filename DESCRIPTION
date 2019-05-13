@@ -1,4 +1,4 @@
-Package: DIFMR
+Package: PAR
 Type: Package
 Title: An R Package including various useful functions to work with spatial analysis of on-farm experiments
 Version: 0.1.0
