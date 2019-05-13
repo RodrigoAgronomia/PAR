@@ -1,4 +1,7 @@
-# DIFMR
+# Precision Agriculture in R
+To install:
+remotes::install_github('RodrigoAgronomia/PAR')
+
 R Package including various useful functions to work with spatial analysis of on-farm experiments.
 
 The package is actively been developed and there is a discussion session every Friday. These are recorded and will be made available.
