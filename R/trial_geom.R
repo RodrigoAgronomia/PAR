@@ -89,7 +89,7 @@ st_utm <- function(sf_obj) {
   long2UTM <- function(long) {
     (floor((long + 180) / 6) %% 60) + 1
   }
-
+  
   # Check if the object class is 'sf':
   obj_c <- class(sf_obj)[1]
   if (obj_c == "sf") {
@@ -98,20 +98,20 @@ st_utm <- function(sf_obj) {
     if (is.na(sf::st_crs(sf_obj))) {
       sf::st_crs(sf_obj) <- sf::st_crs(4326)
     }
-
+    
     # Get the center longitude in degrees:
     bb <- sf::st_as_sfc(sf::st_bbox(sf_obj))
     bb <- sf::st_transform(bb, sf::st_crs(4326))
-
+    
     # Get UTM Zone from mean longitude:
     utmzone <- long2UTM(mean(sf::st_bbox(bb)[c(1, 3)]))
-
+    
     # Get the hemisphere based on the latitude:
     NS <- 100 * (6 + (mean(sf::st_bbox(bb)[c(2, 4)]) < 0))
-
+    
     # Add all toghether to get the EPSG code:
     projutm <- sf::st_crs(32000 + NS + utmzone)
-
+    
     # Reproject data:
     sf_obj <- sf::st_transform(sf_obj, projutm)
     return(sf_obj)
@@ -234,9 +234,9 @@ parallel_lines <- function(line, width, field, offset_path = 0, max_dist = NA, c
   nl <- sapply(seq(-n, n), simplify = FALSE, function(w) {
     sf::st_geometry(line) + (offset_path + w) * width * c(sin(angle), cos(angle))
   })
-
+  
   path_lines <- sf::st_sfc(do.call(rbind, nl), crs = sf::st_crs(line))
-
+  
   # Remove the lines outside the field:
   fieldb <- sf::st_union(sf::st_buffer(field, width / 2))
   crit <- !is.na(as.numeric(sf::st_intersects(path_lines, fieldb)))
@@ -267,7 +267,7 @@ parallel_lines <- function(line, width, field, offset_path = 0, max_dist = NA, c
 #'
 #' }
 get_coverage <- function(path_lines, width, field) {
-
+  
   # Make the polygons path from the lines:
   path_pols <- sf::st_buffer(path_lines, width / 2)
   sf::st_agr(path_pols) <- "constant"
@@ -300,17 +300,17 @@ creat_polygons <- function(pts, w) {
   angle <- -calc_direction(pts) + pi / 2
   critp1 <- c(TRUE, rep(FALSE, n - 1))
   critp2 <- c(critp1[2:n], TRUE)
-
+  
   coordsx <- ((0.5 * Distance) %*% cbind(-1, 1, 1, -1))
   coordsy <- ((Width * 0.5) %*% cbind(-1, -1, 1, 1))
-
+  
   coordsxn <- cos(angle) * coordsx - sin(angle) * coordsy
   coordsyn <- sin(angle) * coordsx + cos(angle) * coordsy
-
+  
   coordsx <- as.numeric(coords[, 1] + coordsxn)
   coordsy <- as.numeric(coords[, 2] + coordsyn)
   n4 <- n * 4
-
+  
   pf <- data.frame(
     POS = 1 + ((1:n4 - 1) %/% n),
     ID = ifelse(1:n4 %% n == 0, n, 1:n4 %% n),
@@ -318,7 +318,7 @@ creat_polygons <- function(pts, w) {
     Xa = coordsx, Ya = coordsy,
     Xm = coordsx, Ym = coordsy
   )
-
+  
   ii <- cbind(c(1, 4), c(2, 3))
   for (i in 1:2) {
     for (j in 3:4) {
@@ -333,7 +333,7 @@ creat_polygons <- function(pts, w) {
       pf[critf, j] <- pf[critf, j + 4]
     }
   }
-
+  
   pfo <- as.matrix(pf[order(pf$ID, pf$POS), ])
   pols <- sapply(1:n, simplify = FALSE, function(x) {
     sf::st_polygon(list(pfo[4 * (x - 1) + c(1:4, 1), 3:4]))
@@ -402,15 +402,15 @@ group_subpols <- function(spols, plot_length, subplot_length,
   spols$bid <- cumsum(spols$Dist > (max_gap + subplot_length))
   spols$bid <- spols$bid + 1e9 * spols$pid
   spols <- dplyr::group_by(spols, bid)
-
+  
   plot_n <- plot_length / subplot_length
   spols <- dplyr::add_tally(spols)
   spols$Poln <- round(spols$n / plot_n)
   spols <- spols[spols$Poln > 0, ]
-
+  
   min_n <- min_length / subplot_length
   spols <- spols[spols$n > min_n, ]
-
+  
   spols <- dplyr::mutate(spols, sid = dplyr::row_number())
   if (fixed_length) {
     spols$rid <- ceiling(spols$sid / plot_n)
@@ -422,7 +422,7 @@ group_subpols <- function(spols, plot_length, subplot_length,
   }
   cod <- list(paste(spols$pid, spols$bid, spols$rid, sep = "_"))
   spols <- sf::st_as_sf(spols)
-
+  
   spolsag <- aggregate(spols, cod, dplyr::first)
   spolsag$prow <- as.numeric(as.factor(spolsag$pid))
   spolsag <- dplyr::group_by(spolsag, prow)
@@ -559,7 +559,7 @@ creat_lines <- function(la, lb, np, center = FALSE, invp = TRUE) {
   }
   ptsa <- sf::st_line_sample(la, density = 1, sample = pts)
   ptsa <- sf::st_cast(ptsa, "POINT")
-
+  
   pts <- if (!is.null(invp) && invp) rev(pts) else pts
   ptsb <- sf::st_line_sample(lb, density = 1, sample = pts)
   ptsb <- sf::st_cast(ptsb, "POINT")
@@ -590,34 +590,43 @@ make_trial <- function(pols) {
     invrcn <- if (is.null(pol$invrcn)) FALSE else pol$invrcn
     invp <- if (is.null(pol$invp)) TRUE else pol$invp
     zdesign <- if (is.null(pol$zdesign)) FALSE else pol$zdesign
-
+    
     l <- to_line(pol)
     l$L <- sf::st_length(l)
     l <- if (which.max(l$L) %% 2 == 1) l[c(2, 1, 4, 3), ] else l
     l <- if (invrc) l[c(2, 1, 4, 3), ] else l
-
+    
     lra <- creat_lines(l[1, ], l[3, ], nrows, center = TRUE, invp = invp)
     lra$rid <- if (invrn) rev(lra$id) else lra$id
     lca <- creat_lines(l[2, ], l[4, ], ncols, center = TRUE, invp = invp)
     lca$cid <- if (invcn) rev(lca$id) else lca$id
-
+    
     lpts <- sf::st_intersection(sf::st_set_agr(lra, "constant"), sf::st_set_agr(lca, "constant"))
-    zcrit <- lpts$rid %% 2 == 0
-    lpts$cid[zcrit] <- if (zdesign) 1 + (nrows - lpts$cid[zcrit]) else lpts$cid[zcrit]
-
+    
+    if (zdesign) {
+      if (invrcn) {
+        zcrit <- lpts$rid %% 2 == 0
+        lpts$cid[zcrit] <- 1 + (nrows - lpts$cid[zcrit])
+      }else{
+        zcrit <- lpts$cid %% 2 == 0
+        lpts$rid[zcrit] <- 1 + (nrows - lpts$rid[zcrit])
+      }
+    }
+    
+    
     lr <- creat_lines(l[1, ], l[3, ], nrows, invp = invp)
     lc <- creat_lines(l[2, ], l[4, ], ncols, invp = invp)
     ll <- rbind(lr, lc)
-
+    
     llb <- sf::st_union(sf::st_buffer(ll, 0.001))
     lpols <- sf::st_difference(sf::st_set_agr(pol, "constant"), llb)
     lpols <- sf::st_cast(sf::st_cast(sf::st_set_agr(lpols, "constant"), "MULTIPOLYGON"), "POLYGON")
-
+    
     ov <- st_over(lpols, lpts)
     lpols$row <- lpts$rid[ov]
     lpols$col <- lpts$cid[ov]
     lpols <- lpols[order(lpols$col, lpols$row), ]
-
+    
     lpols$block <- block
     lpols$bid <- 1:nrow(lpols)
     trial_pols[[as.character(block)]] <- lpols
