@@ -582,14 +582,14 @@ make_trial <- function(pols) {
   trial_pols <- list()
   for (block in pols$block) {
     pol <- pols[pols$block == block, ]
-    nrows <- if (is.null(pol$nrows)) 10 else pol$nrows
-    ncols <- if (is.null(pol$ncols)) 10 else pol$ncols
-    invrc <- if (is.null(pol$invrc)) FALSE else pol$invrc
-    invrn <- if (is.null(pol$invrn)) FALSE else pol$invrn
-    invcn <- if (is.null(pol$invcn)) FALSE else pol$invcn
-    invrcn <- if (is.null(pol$invrcn)) FALSE else pol$invrcn
-    invp <- if (is.null(pol$invp)) TRUE else pol$invp
-    zdesign <- if (is.null(pol$zdesign)) FALSE else pol$zdesign
+    nrows <- if ('nrows' %in% names(pol)) pol$nrows else 10
+    ncols <- if ('ncols' %in% names(pol)) pol$ncols else 10
+    invrc <- if ('invrc' %in% names(pol)) pol$invrc else FALSE
+    invrn <- if ('invrn' %in% names(pol)) pol$invrn else FALSE
+    invcn <- if ('invcn' %in% names(pol)) pol$invcn else FALSE
+    invrcn <- if ('invrcn' %in% names(pol)) pol$invrcn  else FALSE
+    invp <- if ('invp' %in% names(pol)) pol$invp  else TRUE
+    zdesign <- if ('zdesign' %in% names(pol)) pol$zdesign  else FALSE
     
     l <- to_line(pol)
     l$L <- sf::st_length(l)
