@@ -202,7 +202,6 @@ expand_lines <- function(lines, dst = 10000) {
     nc <- rbind(p0, cl, pn)
     nl <- sf::st_linestring(nc)
     nl <- sf::st_sfc(nl, crs = sf::st_crs(line))
-    nl <- sf::st_simplify(nl, dTolerance = 0.1)
     line <- sf::st_set_geometry(line, nl)
     return(line)
   })
