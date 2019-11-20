@@ -71,8 +71,6 @@ calc_direction <- function(df) {
 }
 
 
-usethis::use_package("sf")
-
 #' Tranform any projection to UTM for a sf object:
 #'
 #' This take in any sf geometries and returns
