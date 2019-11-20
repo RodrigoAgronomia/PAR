@@ -1,5 +1,4 @@
 
-
 #' Function to rotate a polygon by a given angle:
 #'
 #' This take in any features of class 'sf' and returns
@@ -7,6 +6,7 @@
 #'
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
 st_rev_line = function(obj){
   ngeom = lapply(1:nrow(obj), function(i){
     coords = sf::st_cast(sf::st_geometry(obj[i,]), "POINT")
@@ -26,6 +26,7 @@ st_rev_line = function(obj){
 #'
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
 st_average_line = function(ptsa, ptsb, a = 0.5){
   ptsc <- ptsa * a + ptsb * (1 - a)
   ngeom <- sf::st_cast(sf::st_combine(ptsc), "LINESTRING")
@@ -39,6 +40,7 @@ st_average_line = function(ptsa, ptsb, a = 0.5){
 #'
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
 to_borders <- function(pol, nv = 4) {
   dtol = 1e-10
   i = 1
@@ -68,7 +70,8 @@ to_borders <- function(pol, nv = 4) {
 #'
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
-creat_points_hv <- function(l, nrows, ncols) {
+#' @export
+create_points_hv <- function(l, nrows, ncols) {
   pts_v <- seq(0, nrows) / nrows
   pts_h <- seq(0, ncols) / ncols
   
@@ -104,6 +107,7 @@ creat_points_hv <- function(l, nrows, ncols) {
 #'
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
 create_trial = function(pol) {
   
   nrows <- if ('nrows' %in% names(pol)) pol$nrows else 10
@@ -121,7 +125,7 @@ create_trial = function(pol) {
   l[c(3,4),] = st_rev_line(l[c(3,4),])
   
   
-  ll <- creat_points_hv(l, nrows, ncols)
+  ll <- create_points_hv(l, nrows, ncols)
   
   ptsl = sf::st_coordinates(ll)[,1:2]
   dim(ptsl) = c(ncols + 1, nrows + 1,  2)
@@ -149,14 +153,4 @@ create_trial = function(pol) {
   pols_ldf = sf::st_as_sf(idf, geom = pols_lf)
   return(pols_ldf)
 }
-
-
-# pol = read_sf('D:/UIUC/GDM_2019/Champaign/spatial/boundary_blocks_test.gpkg')
-# pols_ldf = create_trial(pol)
-# write_sf(pols_ldf, 'D:/UIUC/GDM_2019/Champaign/spatial/Trial_pols_test.gpkg')
-# 
-
-
-
-
 

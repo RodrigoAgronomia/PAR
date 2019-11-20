@@ -143,7 +143,7 @@ calc_distance <- function(sf_obj, max = FALSE) {
     ab_dist <- function(a, b) {
       return(sqrt((a[1] - b[1])^2 + (a[2] - b[2])^2))
     }
-    coords <- st_coordinates(sf_obj)
+    coords <- sf::st_coordinates(sf_obj)
     result <- as.numeric(sapply(c(2:nrow(coords)), function(x) {
       ab_dist(coords[x - 1, ], coords[x, ])
     }))
@@ -289,7 +289,7 @@ get_coverage <- function(path_lines, width, field) {
 #' \dontrun{
 #'
 #' }
-creat_polygons <- function(pts, w) {
+create_polygons <- function(pts, w) {
   n <- nrow(pts)
   coords <- sf::st_coordinates(pts)
   Distance <- calc_distance(pts)
@@ -360,7 +360,7 @@ get_subpols <- function(path_lines, path_pols, plot_width, subplot_length) {
     pts <- sf::st_line_sample(l, density = 1 / subplot_length)
     pts <- sf::st_cast(pts, "POINT")
     pts <- sf::st_as_sf(data.frame(id = 1:length(pts)), pts)
-    pols <- creat_polygons(pts, plot_width)
+    pols <- create_polygons(pts, plot_width)
     sf::st_agr(pols) <- "constant"
     pols <- sf::st_intersection(pols, sf::st_union(pth))
     if (nrow(pols)) {
@@ -549,7 +549,7 @@ to_line <- function(pol) {
 #' @param pols
 #' @keywords Plots, Trial Design
 #' @export
-creat_lines <- function(la, lb, np, center = FALSE, invp = TRUE) {
+create_lines <- function(la, lb, np, center = FALSE, invp = TRUE) {
   pts <- seq(0, np) / np
   if (center) {
     pts <- seq(1, np) / np - 0.5 / np
@@ -593,9 +593,9 @@ make_trial <- function(pols) {
     l <- if (which.max(l$L) %% 2 == 1) l[c(2, 1, 4, 3), ] else l
     l <- if (invrc) l[c(2, 1, 4, 3), ] else l
     
-    lra <- creat_lines(l[1, ], l[3, ], nrows, center = TRUE, invp = invp)
+    lra <- create_lines(l[1, ], l[3, ], nrows, center = TRUE, invp = invp)
     lra$rid <- if (invrn) rev(lra$id) else lra$id
-    lca <- creat_lines(l[2, ], l[4, ], ncols, center = TRUE, invp = invp)
+    lca <- create_lines(l[2, ], l[4, ], ncols, center = TRUE, invp = invp)
     lca$cid <- if (invcn) rev(lca$id) else lca$id
     
     lpts <- sf::st_intersection(sf::st_set_agr(lra, "constant"), sf::st_set_agr(lca, "constant"))
@@ -611,8 +611,8 @@ make_trial <- function(pols) {
     }
     
     
-    lr <- creat_lines(l[1, ], l[3, ], nrows, invp = invp)
-    lc <- creat_lines(l[2, ], l[4, ], ncols, invp = invp)
+    lr <- create_lines(l[1, ], l[3, ], nrows, invp = invp)
+    lc <- create_lines(l[2, ], l[4, ], ncols, invp = invp)
     ll <- rbind(lr, lc)
     
     llb <- sf::st_union(sf::st_buffer(ll, 0.001))
