@@ -108,49 +108,56 @@ create_points_hv <- function(l, nrows, ncols) {
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
 #' @export
-create_trial = function(pol) {
-  
-  nrows <- if ('nrows' %in% names(pol)) pol$nrows else 10
-  ncols <- if ('ncols' %in% names(pol)) pol$ncols else 10
-  invrc <- if ('invrc' %in% names(pol)) pol$invrc else FALSE
-  invrn <- if ('invrn' %in% names(pol)) pol$invrn else FALSE
-  invcn <- if ('invcn' %in% names(pol)) pol$invcn else FALSE
-  invrcn <- if ('invrcn' %in% names(pol)) pol$invrcn  else FALSE
-  zdesign <- if ('zdesign' %in% names(pol)) pol$zdesign  else FALSE
-  
-  
-  l <- to_borders(pol)
-  l$L <- sf::st_length(l)
-  l <- if (invrc) l[c(2, 1, 4, 3), ] else l
-  l[c(3,4),] = st_rev_line(l[c(3,4),])
-  
-  
-  ll <- create_points_hv(l, nrows, ncols)
-  
-  ptsl = sf::st_coordinates(ll)[,1:2]
-  dim(ptsl) = c(ncols + 1, nrows + 1,  2)
-  
-  pols_l = lapply(1:ncols, function(i){lapply(1:nrows, function(j){
-    sf::st_polygon(list(rbind(ptsl[i,j,], ptsl[i+1,j,], ptsl[i+1,j+1,], ptsl[i,j+1,], ptsl[i,j,])))
-  })})
-  
-  pols_lf <- do.call(c, pols_l)
-  
-  rid <- if (invrn) nrows:1 else 1:nrows
-  cid <- if (invcn) ncols:1 else 1:ncols
-  idf = data.frame(id = 1:length(pols_lf), rid = rep(rid, ncols), cid = rep(cid, each = nrows))
-  
-  if (zdesign) {
-    if (invrcn) {
-      zcrit <- idf$rid %% 2 == 0
-      idf$cid[zcrit] <- 1 + (nrows - idf$cid[zcrit])
-    }else{
-      zcrit <- idf$cid %% 2 == 0
-      idf$rid[zcrit] <- 1 + (nrows - idf$rid[zcrit])
+create_trial = function(pols) {
+  pols <- st_utm(pols)
+  trial_pols <- list()
+  for (block in pols$block) {
+    pol <- pols[pols$block == block, ]
+    nrows <- if ('nrows' %in% names(pol)) pol$nrows else 10
+    ncols <- if ('ncols' %in% names(pol)) pol$ncols else 10
+    invrc <- if ('invrc' %in% names(pol)) pol$invrc else FALSE
+    invrn <- if ('invrn' %in% names(pol)) pol$invrn else FALSE
+    invcn <- if ('invcn' %in% names(pol)) pol$invcn else FALSE
+    invrcn <- if ('invrcn' %in% names(pol)) pol$invrcn  else FALSE
+    zdesign <- if ('zdesign' %in% names(pol)) pol$zdesign  else FALSE
+    
+    
+    l <- to_borders(pol)
+    l$L <- sf::st_length(l)
+    l <- if (invrc) l[c(2, 1, 4, 3), ] else l
+    l[c(3,4),] = st_rev_line(l[c(3,4),])
+    
+    
+    ll <- create_points_hv(l, nrows, ncols)
+    
+    ptsl = sf::st_coordinates(ll)[,1:2]
+    dim(ptsl) = c(ncols + 1, nrows + 1,  2)
+    
+    pols_l = lapply(1:ncols, function(i){lapply(1:nrows, function(j){
+      sf::st_polygon(list(rbind(ptsl[i,j,], ptsl[i+1,j,], ptsl[i+1,j+1,], ptsl[i,j+1,], ptsl[i,j,])))
+    })})
+    
+    pols_lf <- do.call(c, pols_l)
+    
+    rid <- if (invrn) nrows:1 else 1:nrows
+    cid <- if (invcn) ncols:1 else 1:ncols
+    idf = data.frame(id = 1:length(pols_lf), rid = rep(rid, ncols), cid = rep(cid, each = nrows))
+    
+    if (zdesign) {
+      if (invrcn) {
+        zcrit <- idf$rid %% 2 == 0
+        idf$cid[zcrit] <- 1 + (nrows - idf$cid[zcrit])
+      }else{
+        zcrit <- idf$cid %% 2 == 0
+        idf$rid[zcrit] <- 1 + (nrows - idf$rid[zcrit])
+      }
     }
+    
+    lpols = sf::st_as_sf(idf, geom = pols_lf)
+    lpols$block <- block
+    lpols$bid <- 1:nrow(lpols)
+    trial_pols[[as.character(block)]] <- lpols
   }
-  
-  pols_ldf = sf::st_as_sf(idf, geom = pols_lf)
-  return(pols_ldf)
+  trial_pols <- do.call(rbind, trial_pols)
+  return(trial_pols)
 }
-

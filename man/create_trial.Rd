@@ -4,7 +4,7 @@
 \alias{create_trial}
 \title{Function to average to lines:}
 \usage{
-create_trial(pol)
+create_trial(pols)
 }
 \arguments{
 \item{obj}{feature of class 'sf'}
