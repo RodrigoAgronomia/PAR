@@ -1,38 +1,4 @@
 
-#' Function to rotate a polygon by a given angle:
-#'
-#' This take in any features of class 'sf' and returns
-#'  the rotate version of the geometries:
-#'
-#' @param obj feature of class 'sf'
-#' @keywords Angle, Rotation, Affine, Simple Features, sf
-#' @export
-st_rev_line = function(obj){
-  ngeom = lapply(1:nrow(obj), function(i){
-    coords = sf::st_cast(sf::st_geometry(obj[i,]), "POINT")
-    ngeom = sf::st_cast(sf::st_combine(rev(coords)), "LINESTRING")
-    return(ngeom)
-  })
-  ngeom = sf::st_sfc(do.call(c, ngeom))
-  nobj = sf::st_set_geometry(obj, ngeom)
-  return(nobj)
-}
-
-
-#' Function to average to lines:
-#'
-#' This take in any features of class 'sf' and returns
-#'  the rotate version of the geometries:
-#'
-#' @param obj feature of class 'sf'
-#' @keywords Angle, Rotation, Affine, Simple Features, sf
-#' @export
-st_average_line = function(ptsa, ptsb, a = 0.5){
-  ptsc <- ptsa * a + ptsb * (1 - a)
-  ngeom <- sf::st_cast(sf::st_combine(ptsc), "LINESTRING")
-  return(ngeom)
-} 
-
 #' Function to average to lines:
 #'
 #' This take in any features of class 'sf' and returns
@@ -42,17 +8,17 @@ st_average_line = function(ptsa, ptsb, a = 0.5){
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
 #' @export
 to_borders <- function(pol, nv = 4) {
-  dtol = 1e-10
-  i = 1
+  dtol <- 1e-10
+  i <- 1
   while (i < 100) {
-    dtol = dtol * 2
-    npol = sf::st_simplify(pol, dTolerance = dtol)
+    dtol <- dtol * 2
+    npol <- sf::st_simplify(pol, dTolerance = dtol)
     if (nrow(sf::st_coordinates(npol)) <= (nv + 1)) break
-    i = i + 1
+    i <- i + 1
   }
-  rcrit = duplicated(rbind(sf::st_coordinates(npol), sf::st_coordinates(pol)))
-  rcrit = which(rcrit[-c(1:(nv + 1))])
-  
+  rcrit <- duplicated(rbind(sf::st_coordinates(npol), sf::st_coordinates(pol)))
+  rcrit <- which(rcrit[-c(1:(nv + 1))])
+
   pts <- sf::st_cast(sf::st_cast(sf::st_cast(sf::st_geometry(pol), "POLYGON"), "LINESTRING"), "POINT")
   segs <- lapply(1:nv, function(x) {
     sf::st_cast(sf::st_combine(pts[rcrit[x]:rcrit[x + 1]]), "LINESTRING")[[1]]
@@ -63,7 +29,7 @@ to_borders <- function(pol, nv = 4) {
 }
 
 
-#' Function to average to lines:
+#' Function to rotate a polygon by a given angle:
 #'
 #' This take in any features of class 'sf' and returns
 #'  the rotate version of the geometries:
@@ -71,34 +37,80 @@ to_borders <- function(pol, nv = 4) {
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
 #' @export
-create_points_hv <- function(l, nrows, ncols) {
+st_rev_line <- function(obj) {
+  ngeom <- lapply(1:nrow(obj), function(i) {
+    coords <- sf::st_cast(sf::st_geometry(obj[i, ]), "POINT")
+    ngeom <- sf::st_cast(sf::st_combine(rev(coords)), "LINESTRING")
+    return(ngeom)
+  })
+  ngeom <- sf::st_sfc(do.call(c, ngeom))
+  nobj <- sf::st_set_geometry(obj, ngeom)
+  return(nobj)
+}
+
+
+#' Function to average to points:
+#'
+#' This take in any features of class 'sf' and returns
+#'  the rotate version of the geometries:
+#'
+#' @param obj feature of class 'sf'
+#' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
+st_average_points <- function(ptsa, ptsb, a = 0.5) {
+  ptsc <- ptsa * a + ptsb * (1 - a)
+  ngeom <- sf::st_cast(sf::st_combine(ptsc), "LINESTRING")
+  return(ngeom)
+}
+
+
+
+#' Function to average to lines in batch:
+#'
+#' This take in any features of class 'sf' and returns
+#'  the rotate version of the geometries:
+#'
+#' @param obj feature of class 'sf'
+#' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
+st_average_lines <- function(ptsa, ptsb, ii, label) {
+  ll <- lapply(ii, function(i) {
+    nl <- st_average_points(ptsa, ptsb, a = i)
+    return(nl)
+  })
+  ll <- do.call(c, ll)
+  idf <- data.frame(id = 1:length(ll), label = label)
+  ll <- sf::st_as_sf(idf, geom = ll)
+  return(ll)
+}
+
+
+#' Function to average to lines in batch:
+#'
+#' This take in any features of class 'sf' and returns
+#'  the rotate version of the geometries:
+#'
+#' @param obj feature of class 'sf'
+#' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
+create_lines_hv <- function(l, nrows, nranges) {
   pts_v <- seq(0, nrows) / nrows
-  pts_h <- seq(0, ncols) / ncols
-  
+  pts_h <- seq(0, nranges) / nranges
+
   l0 <- expand_lines(l, 10)
   lref <- sf::st_sfc(sf::st_line_sample(l0, density = 1, sample = seq(0, 1, 0.01)))
-  ptsa <- sf::st_cast(lref[1], "POINT")
-  ptsb <- sf::st_cast(lref[3], "POINT")
-  ptsc <- sf::st_cast(lref[2], "POINT")
-  ptsd <- sf::st_cast(lref[4], "POINT")
-  
-  
-  ll_v <- lapply(pts_v, function(i) {
-    nl = st_average_line(ptsa, ptsb, a = i)
-    return(nl)
-  })
-  ll_v <- do.call(c, ll_v)
-  
-  
-  ll_h <- lapply(pts_h, function(i) {
-    nl = st_average_line(ptsc, ptsd, a = i)
-    return(nl)
-  })
-  
-  ll_h <- do.call(c, ll_h)
-  pts_hv = sf::st_intersection(ll_h, ll_v)
-  return(pts_hv)
+  lref <- sf::st_set_agr(sf::st_set_geometry(l0, lref), "constant")
+  ptss <- sf::st_cast(lref, "POINT")
+  ptss <- split(sf::st_geometry(ptss), ptss$group)
+
+  ll_v <- st_average_lines(ptss[[1]], ptss[[3]], pts_v, "v")
+  ll_h <- st_average_lines(ptss[[2]], ptss[[4]], pts_h, "h")
+  llf <- rbind(ll_v, ll_h)
+  llf <- sf::st_set_crs(llf, sf::st_crs(l))
+  llf <- sf::st_set_agr(llf, "constant")
+  return(llf)
 }
+
 
 #' Function to average to lines:
 #'
@@ -108,56 +120,71 @@ create_points_hv <- function(l, nrows, ncols) {
 #' @param obj feature of class 'sf'
 #' @keywords Angle, Rotation, Affine, Simple Features, sf
 #' @export
-create_trial = function(pols) {
+create_points_hv <- function(ll) {
+  ll_h <- ll[ll$label == "h", ]
+  ll_v <- ll[ll$label == "v", ]
+  pts_hv <- sf::st_intersection(ll_h, ll_v)
+  return(pts_hv)
+}
+
+
+#' Function to average to lines:
+#'
+#' This take in any features of class 'sf' and returns
+#'  the rotate version of the geometries:
+#'
+#' @param obj feature of class 'sf'
+#' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
+create_trial <- function(pols, geom_type = "pol") {
   pols <- st_utm(pols)
   trial_pols <- list()
   for (block in pols$block) {
     pol <- pols[pols$block == block, ]
-    nrows <- if ('nrows' %in% names(pol)) pol$nrows else 10
-    ncols <- if ('ncols' %in% names(pol)) pol$ncols else 10
-    invrc <- if ('invrc' %in% names(pol)) pol$invrc else FALSE
-    invrn <- if ('invrn' %in% names(pol)) pol$invrn else FALSE
-    invcn <- if ('invcn' %in% names(pol)) pol$invcn else FALSE
-    invrcn <- if ('invrcn' %in% names(pol)) pol$invrcn  else FALSE
-    zdesign <- if ('zdesign' %in% names(pol)) pol$zdesign  else FALSE
-    
-    
+    nrows <- if ("nrows" %in% names(pol)) pol$nrows else 10
+    nranges <- if ("nranges" %in% names(pol)) pol$nranges else 10
+    invrc <- if ("invrc" %in% names(pol)) pol$invrc else FALSE
+
     l <- to_borders(pol)
-    l$L <- sf::st_length(l)
-    l <- if (invrc) l[c(2, 1, 4, 3), ] else l
-    l[c(3,4),] = st_rev_line(l[c(3,4),])
-    
-    
-    ll <- create_points_hv(l, nrows, ncols)
-    
-    ptsl = sf::st_coordinates(ll)[,1:2]
-    dim(ptsl) = c(ncols + 1, nrows + 1,  2)
-    
-    pols_l = lapply(1:ncols, function(i){lapply(1:nrows, function(j){
-      sf::st_polygon(list(rbind(ptsl[i,j,], ptsl[i+1,j,], ptsl[i+1,j+1,], ptsl[i,j+1,], ptsl[i,j,])))
-    })})
-    
-    pols_lf <- do.call(c, pols_l)
-    
-    rid <- if (invrn) nrows:1 else 1:nrows
-    cid <- if (invcn) ncols:1 else 1:ncols
-    idf = data.frame(id = 1:length(pols_lf), rid = rep(rid, ncols), cid = rep(cid, each = nrows))
-    
-    if (zdesign) {
-      if (invrcn) {
-        zcrit <- idf$rid %% 2 == 0
-        idf$cid[zcrit] <- 1 + (nrows - idf$cid[zcrit])
-      }else{
-        zcrit <- idf$cid %% 2 == 0
-        idf$rid[zcrit] <- 1 + (nrows - idf$rid[zcrit])
-      }
+    l$L <- as.numeric(sf::st_length(l))
+    asp_ratio <- l$L[1] / l$L[2]
+    rc_ratio <- nrows / nranges
+    inv_crit <- which.min(abs(3.7 - rc_ratio * c(asp_ratio, 1 / asp_ratio))) == 2
+    l$group <- if (inv_crit) c(2, 1, 4, 3) else l$group
+    l$group <- if (invrc) c(2, 1, 4, 3) else l$group
+    l[c(3, 4), ] <- st_rev_line(l[c(3, 4), ])
+    ll <- create_lines_hv(l, nrows, nranges)
+
+    if (geom_type == "line") {
+      ll$block <- block
+      ll <- sf::st_intersection(ll, sf::st_buffer(sf::st_geometry(pol), 0.1))
+      trial_pols[[as.character(block)]] <- ll
+    } else {
+      lpts <- create_points_hv(ll)
+
+      ptsl <- sf::st_coordinates(lpts)[, 1:2]
+      dim(ptsl) <- c(nranges + 1, nrows + 1, 2)
+
+      pols_l <- lapply(1:nranges, function(i) {
+        lapply(1:nrows, function(j) {
+          sf::st_polygon(list(rbind(ptsl[i, j, ], ptsl[i + 1, j, ], ptsl[i + 1, j + 1, ], ptsl[i, j + 1, ], ptsl[i, j, ])))
+        })
+      })
+
+      pols_lf <- do.call(c, pols_l)
+      idf <- data.frame(
+        id = 1:length(pols_lf),
+        rid = rep(1:nrows, nranges),
+        cid = rep(1:nranges, each = nrows)
+      )
+
+      lpols <- sf::st_as_sf(idf, geom = pols_lf)
+      lpols$block <- block
+      lpols$bid <- 1:nrow(lpols)
+      trial_pols[[as.character(block)]] <- lpols
     }
-    
-    lpols = sf::st_as_sf(idf, geom = pols_lf)
-    lpols$block <- block
-    lpols$bid <- 1:nrow(lpols)
-    trial_pols[[as.character(block)]] <- lpols
   }
   trial_pols <- do.call(rbind, trial_pols)
+  trial_pols <- sf::st_set_crs(trial_pols, st_crs(pols))
   return(trial_pols)
 }
