@@ -186,5 +186,55 @@ create_trial <- function(pols, geom_type = "pol") {
   }
   trial_pols <- do.call(rbind, trial_pols)
   trial_pols <- sf::st_set_crs(trial_pols, st_crs(pols))
+  trial_pols$id <- 1:nrow(trial_pols)
   return(trial_pols)
 }
+
+
+#' Function to average to lines:
+#'
+#' This take in any features of class 'sf' and returns
+#'  the rotate version of the geometries:
+#'
+#' @param obj feature of class 'sf'
+#' @keywords Angle, Rotation, Affine, Simple Features, sf
+#' @export
+make_trial_ids <- function(pols) {
+  polsl <- list()
+  for (block in unique(pols$block)) {
+    pol <- pols[pols$block == block, ]
+    invrn <- if ('invrn' %in% names(pol)) max(pol$invrn) else FALSE
+    invcn <- if ('invcn' %in% names(pol)) max(pol$invcn) else FALSE
+    invrcn <- if ('invrcn' %in% names(pol)) max(pol$invrcn) else FALSE
+    zdesign <- if ('zdesign' %in% names(pol)) max(pol$zdesign) else FALSE
+    
+    pol$rid <- pol$rid - (min(pol$rid) - 1)
+    pol$cid <- pol$cid - (min(pol$cid) - 1)
+
+    pol$rid <- if (invrn) { (max(pol$rid) + 1) - pol$rid } else{pol$rid}
+    pol$cid <- if (invcn) { (max(pol$cid) + 1) - pol$cid } else{pol$cid}
+    
+    if (zdesign) {
+      if (invrcn) {
+        zcrit <- pol$rid %% 2 == 0
+        pol$cid[zcrit] <- (max(pol$cid) + 1) - pol$cid[zcrit]
+      }else{
+        zcrit <- pol$cid %% 2 == 0
+        pol$rid[zcrit] <- (max(pol$rid) + 1) - pol$rid[zcrit]
+      }
+    }
+    
+    if (invrcn) {
+      pol <- dplyr::mutate(pol, bid = order(order(rid, cid)))
+    } else {
+      pol <- dplyr::mutate(pol, bid = order(order(cid, rid)))
+    }
+    
+    polsl[[as.character(block)]] <- pol
+  }
+  trial_pols <- do.call(rbind, polsl)
+  trial_pols <- dplyr::arrange(trial_pols, block, bid)
+  trial_pols$idn <- 1:nrow(trial_pols)
+  return(trial_pols)
+}
+

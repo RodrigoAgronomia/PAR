@@ -484,7 +484,7 @@ st_rotate <- function(obj, a) {
   cnt <- sf::st_set_precision(cnt, 1e3)
   objr <- (sf::st_geometry(obj) - cnt) * m
   objr <- sf::st_set_precision(objr, 1e3)
-  objr <- sf::st_simplify(objr, 1e-3)
+  objr <- sf::st_simplify(objr, dTolerance = 1e-3)
   objr <- objr + cnt
   sf::st_geometry(obj) <- objr
   sf::st_crs(obj) <- sf::st_crs(cnt)
