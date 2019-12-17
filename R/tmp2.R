@@ -147,10 +147,10 @@ create_trial <- function(pols, geom_type = "pol") {
 
     l <- to_borders(pol)
     l$L <- as.numeric(sf::st_length(l))
-    asp_ratio <- l$L[1] / l$L[2]
-    rc_ratio <- nrows / nranges
-    inv_crit <- which.min(abs(3.7 - rc_ratio * c(asp_ratio, 1 / asp_ratio))) == 2
-    l$group <- if (inv_crit) c(2, 1, 4, 3) else l$group
+    # asp_ratio <- l$L[1] / l$L[2]
+    # rc_ratio <- nrows / nranges
+    # inv_crit <- which.min(abs(3.7 - rc_ratio * c(asp_ratio, 1 / asp_ratio))) == 2
+    # l$group <- if (inv_crit) c(2, 1, 4, 3) else l$group
     l$group <- if (invrc) c(2, 1, 4, 3) else l$group
     l[c(3, 4), ] <- st_rev_line(l[c(3, 4), ])
     ll <- create_lines_hv(l, nrows, nranges)
