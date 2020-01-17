@@ -71,6 +71,31 @@ calc_direction <- function(df) {
 }
 
 
+#' Function to get the heading angle between all consecutive points:
+#'
+#' This function take a point data frame of class 'sf' and return the heading angle between the
+#' consecutive points. In other words, the result is a list of the direction of travel for each point:
+#'
+#' @param df data frame of class 'sf'
+#' @keywords Angle, Heading, Simple Features, sf
+#' @export
+#' @examples
+#' library(sf)
+#' points <- read_sf("data/Points.gpkg")
+#' calc_line_direction(points)
+#' \dontrun{
+#'
+#' }
+calc_line_direction = function(df) {
+  result <- sapply(c(1:nrow(df)), function(x) {
+    coords <- sf::st_coordinates(df[x,])
+    calc_angle(coords[1,], coords[nrow(coords), ])
+  })
+  return(result)
+}
+
+
+
 #' Tranform any projection to UTM for a sf object:
 #'
 #' This take in any sf geometries and returns

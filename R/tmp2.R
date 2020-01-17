@@ -25,6 +25,8 @@ to_borders <- function(pol, nv = 4) {
   })
   segs <- sf::st_as_sf(data.frame(group = 1:nv), geom = sf::st_as_sfc(segs))
   sf::st_crs(segs) <- sf::st_crs(pol)
+  segs$heading <- calc_line_direction(segs)
+  segs$length <- as.numeric(sf::st_length(segs))
   return(segs)
 }
 
@@ -143,15 +145,13 @@ create_trial <- function(pols, geom_type = "pol") {
     pol <- pols[pols$block == block, ]
     nrows <- if ("nrows" %in% names(pol)) pol$nrows else 10
     nranges <- if ("nranges" %in% names(pol)) pol$nranges else 10
-    invrc <- if ("invrc" %in% names(pol)) pol$invrc else FALSE
-
+    angle <- if ("angle" %in% names(pol)) pol$angle else 0
+    angle_rad <- angle * pi/180
+    
     l <- to_borders(pol)
-    l$L <- as.numeric(sf::st_length(l))
-    # asp_ratio <- l$L[1] / l$L[2]
-    # rc_ratio <- nrows / nranges
-    # inv_crit <- which.min(abs(3.7 - rc_ratio * c(asp_ratio, 1 / asp_ratio))) == 2
-    # l$group <- if (inv_crit) c(2, 1, 4, 3) else l$group
-    l$group <- if (invrc) c(2, 1, 4, 3) else l$group
+    angle_dif <- atan2(sin(angle_rad - l$heading), cos(angle_rad - l$heading))
+    l$group <- 1 + ((-1:2 +  which.min(abs(angle_dif))) %% 4)
+
     l[c(3, 4), ] <- st_rev_line(l[c(3, 4), ])
     ll <- create_lines_hv(l, nrows, nranges)
 

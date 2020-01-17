@@ -3,6 +3,7 @@
 export(calc_angle)
 export(calc_direction)
 export(calc_distance)
+export(calc_line_direction)
 export(create_lines)
 export(create_lines_hv)
 export(create_points_hv)
